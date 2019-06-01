@@ -1,21 +1,21 @@
 "use strict";
 
-require('dotenv').config()
-const termpose = require('./termpose')
-const express = require('express')
-const bodyParser = require('body-parser')
-const request = require('request')
-// const { RTMClient } = require('@slack/rtm-api')
-const { createEventAdapter } = require('@slack/events-api')
-const valueEqual = require('fast-deep-equal')
-const nedb = require('nedb-promises')
-const fs = require('fs')
+require(`dotenv`).config()
+const termpose = require(`./termpose`)
+const express = require(`express`)
+const bodyParser = require(`body-parser`)
+const request = require(`request`)
+// const { RTMClient } = require(`@slack/rtm-api`)
+const { createEventAdapter } = require(`@slack/events-api`)
+const valueEqual = require(`fast-deep-equal`)
+const nedb = require(`nedb-promises`)
+const fs = require(`fs`)
 
-let conf = JSON.parse(fs.readFileSync(__dirname + '/config.json', 'utf8'))
-let secrets = JSON.parse(fs.readFileSync(__dirname + '/secrets.json', 'utf8'))
+let conf = JSON.parse(fs.readFileSync(__dirname + `/config.json`, `utf8`))
+let secrets = JSON.parse(fs.readFileSync(__dirname + `/secrets.json`, `utf8`))
 
 let mind = nedb.create({
-  filename: __dirname + '/mind.db',
+  filename: __dirname + `/mind.db`,
   autoload: true
 })
 
@@ -25,27 +25,27 @@ const app = express()
 // Starts server
 const port = process.env.PORT || conf.port
 app.listen(port, function() {
-  console.log('Bot is listening on port ' + port)
+  console.log(`Bot is listening on port ` + port)
 })
 
 
 
 //handle auth? I just copied this from the tutorial and I don't know if it even does anything
-app.get('/oauth', function(req, res) {
+app.get(`/oauth`, function(req, res) {
   // When a user authorizes an app, a code query parameter is passed on the oAuth endpoint. If that code is not there, we respond with an error message
   if (!req.query.code) {
     res.status(500)
-    res.send({"Error": "Looks like we're not getting code."})
-    console.log("Looks like we're not getting code.")
+    res.send({Error: `Looks like we're not getting code.`})
+    console.log(`Looks like we're not getting code.`)
   } else {
-    console.log("doing oauth.")
+    console.log(`doing oauth.`)
     // If it's there...
 
     // We'll do a GET call to Slack's `oauth.access` endpoint, passing our app's client ID, client secret, and the code we just got as query parameters.
     request({
-      url: 'https://slack.com/api/oauth.access', //URL to hit
+      url: `https://slack.com/api/oauth.access`, //URL to hit
       qs: {code: req.query.code, client_id: conf.slack_client_id, client_secret: conf.slack_client_secret}, //Query string data
-      method: 'GET', //Specify the method
+      method: `GET`, //Specify the method
     }, function (error, response, body) {
       if (error) {
         console.log(error)
@@ -66,7 +66,7 @@ async function sendMessage(channel, msg){
     channel,
     text: msg
   }}
-  request.post('https://slack.com/api/chat.postMessage', data, function (error, response, body) {})
+  request.post(`https://slack.com/api/chat.postMessage`, data, function (error, response, body) {})
   // await rtmclient.sendMessage(msg, channel)
 }
 
@@ -83,29 +83,29 @@ async function sendMessage(channel, msg){
 
 app.use(bodyParser.urlencoded({extended: true}))
 app.use(bodyParser.json())
-app.post('/slack', (req, res) => {
-  if(req.body.type == "url_verification"){
+app.post(`/slack`, (req, res) => {
+  if(req.body.type == `url_verification`){
     res.send(req.body.challenge)
   }else{
     //then it's probably a command? there doesn't seem to be a type field for commands :<
-    if(req.body.command == "/prod_media_system"){
-      res.send("hears slack")
-      // res.send({channel: req.body.channel_id, text:"system online"})
+    if(req.body.command == `/prod_media_system`){
+      res.send(`hears slack`)
+      // res.send({channel: req.body.channel_id, text:`system online`})
     }else{
-      res.send({text:"system confused"})
+      res.send({text:`system confused`})
     }
   }
 })
 app.post('/', (req, res) => {
-  console.log('why is someone calling this url', req.headers, req.body)
-  if(req.body.type == "url_verification"){
+  console.log(`why is someone calling this url`, req.headers, req.body)
+  if(req.body.type == `url_verification`){
     res.send(req.body.challenge)
   }else{
     //then it's probably a command? there doesn't seem to be a type field for commands :<
-    if(req.body.command == "/prod_media_system"){
-      res.send("system online")
+    if(req.body.command == `/prod_media_system`){
+      res.send(`system online`)
     }else{
-      res.send({text:"system confused"})
+      res.send({text:`system confused`})
     }
   }
 })
@@ -120,40 +120,40 @@ function receiveMessageEvent(event){
       let term = termpose.Woodslist.parseSingle(command[2])
       systemCommandInvocation(event, term)
     }catch(e){
-      sendMessage(event.channel, "That violated the termpose parser. You will need to speak more clearly.")
+      sendMessage(event.channel, `That violated the woodslist parser. You will need to speak more clearly.`)
     }
   }
 }
 
 function tellCantEdit(channel, caster, g){
-  let allowedEditors = ""
+  let allowedEditors = ``
   if(g.editors.includes(g.name)){
-    allowedEditors += "either in it, or "
+    allowedEditors += `either in it, or `
   }
-  allowedEditors += "in "
+  allowedEditors += `in `
   for(var gn of g.editors){
     if(gn != g.name){
-      allowedEditors += gn + ", "
+      allowedEditors += gn + `, `
     }
   }
   sendMessage(channel, `<@${caster}> to edit that group you need to be ${allowedEditors}`)
-  res.send("you can't edit that")
+  res.send(`you can't edit that`)
 }
 
 async function createGroupIfNotExistent(groupName){
-  if(groupName == 'self'){
-    throw new Error("you can't create a self group")
+  if(groupName == `self`){
+    throw new Error(`you can't create a self group`)
   }
   let matchingGroup = await mind.findOne({t:'group', name:groupName})
   if(!matchingGroup){
-    await mind.insert({t:'group', name:groupName, editors:[groupName, 'admin']})
+    await mind.insert({t:`group`, name:groupName, editors:[groupName, `admin`]})
   }
-  return await mind.findOne({t:'group', name:groupName})
+  return await mind.findOne({t:`group`, name:groupName})
 }
 
 async function canEdit(member, groupName){
-  let ge = await mind.findOne({t:'group', name:groupName})
-  let me = await mind.find({t:'membership', memberId:member}).exec()
+  let ge = await mind.findOne({t:`group`, name:groupName})
+  let me = await mind.find({t:`membership`, memberId:member}).exec()
   return ge && me && ge.editors.some((e)=>{
     if(e.user){
       return e.user == member
@@ -169,7 +169,7 @@ function readIDField(str){
 }
 
 async function findGroup(groupName){
-  return await mind.findOne({t:'group', name:groupName})
+  return await mind.findOne({t:`group`, name:groupName})
 }
 
 async function systemCommandInvocation(event, command){ //command is a term
@@ -197,7 +197,7 @@ async function systemCommandInvocation(event, command){ //command is a term
   }
   let requireCommandHas = (number)=> {
     if(!command.s || command.s.length < number){
-      reply('not enough variables')
+      reply(`not enough variables`)
       return false
     }else{
       return true
@@ -205,9 +205,9 @@ async function systemCommandInvocation(event, command){ //command is a term
   }
   
   async function getBalanceOpenAccountIfNeeded(memberId){
-    let account = await mind.findOne({t:'bankAccount', member:memberId})
+    let account = await mind.findOne({t:`bankAccount`, member:memberId})
     if(!account){
-      await mind.insert({t:'bankAccount', member:memberId, balance:1})
+      await mind.insert({t:`bankAccount`, member:memberId, balance:1})
       return 1
     }else{
       return account.balance
@@ -219,12 +219,12 @@ async function systemCommandInvocation(event, command){ //command is a term
     let balance = getBalanceOpenAccountIfNeeded(caster)
     
     if(amount > balance){
-      reply("you don't have that much money")
+      reply(`you don't have that much money`)
       return false
     }
     
     let newBalance = balance - amount
-    await mind.update({t:'bankAccount', member:caster}, {$set: {balance:newBalance}})
+    await mind.update({t:`bankAccount`, member:caster}, {$set: {balance:newBalance}})
     return true
   }
   
@@ -233,21 +233,21 @@ async function systemCommandInvocation(event, command){ //command is a term
     await setBalance(balance + amount)
   }
   
-  async function setBalance(newBalance){
-    await mind.update({t:'bankAccount', member:caster}, {$set: {balance:newBalance}})
+  async function setBalance(memberId, newBalance){
+    await mind.update({t:`bankAccount`, member:memberId}, {$set: {balance:newBalance}})
   }
   
   async function findOrMakeWager(claim){
-    let bl = await mind.findOne({t:'wager', claim:claim})
+    let bl = await mind.findOne({t:`wager`, claim:claim})
     if(!bl){
-      bl = {t:'wager', claim:claim, closingDate:null, declaredOutcome:null, outcomeDeclarer:null}
+      bl = {t:`wager`, claim:claim, closingDate:null, declaredOutcome:null, outcomeDeclarer:null}
       await mind.insert(bl)
     }
     return bl
   }
   
   async function gatherBets(claim){
-    let bets = await mind.find({t:'bet', claim:claim}).exec()
+    let bets = await mind.find({t:`bet`, claim:claim}).exec()
     let bm = new Map()
     for(var b : bets){
       let mm = bm.get(b.outcome)
@@ -265,8 +265,8 @@ async function systemCommandInvocation(event, command){ //command is a term
   }
   
   if(key == `engage`){
-    if(command.s && command.s.includes('me')){
-      reply(':black-eye:')
+    if(command.s && command.s.some((st)=> st.initialString() == `me`)){
+      reply(`:black-eye:`)
     }else{
       sendMessage(event.channel, `:black-eye:`)
     }
@@ -278,27 +278,27 @@ async function systemCommandInvocation(event, command){ //command is a term
     
     //establish group
     let groupName = command.s[2].asArrayOfStrings()
-    let pm = await mind.findOne({t:'membership', memberId:appointee, group:groupName})
+    let pm = await mind.findOne({t:`membership`, memberId:appointee, group:groupName})
     if(pm){
       reply(`they're already in that group`)
       return
     }
-    let g = await mind.findOne({t:'group', name:groupName})
+    let g = await mind.findOne({t:`group`, name:groupName})
     let justCreated = false
     if(g == null){
       //create it
-      let editors = ['self', 'admin']
-      mind.insert({t:'group', name:groupName, editors, blame:caster})
+      let editors = [`self`, `admin`]
+      mind.insert({t:`group`, name:groupName, editors, blame:caster})
       justCreated = true
-      g = await mind.findOne({t:'group', name:groupName})
+      g = await mind.findOne({t:`group`, name:groupName})
     }
     
     //insert
     if(justCreated){
-      await mind.insert({t:'membership', group:groupName, memberId:appointee, blame:caster})
+      await mind.insert({t:`membership`, group:groupName, memberId:appointee, blame:caster})
     }else{
       if(await canEdit(caster, groupName)){
-        await mind.insert({t:'membership', memberId:appointee, group:groupName, blame:caster})
+        await mind.insert({t:`membership`, memberId:appointee, group:groupName, blame:caster})
       }else{
         tellCantEdit(event.channel, caster, g)
         return
@@ -306,7 +306,7 @@ async function systemCommandInvocation(event, command){ //command is a term
     }
     
     //report
-    let count = await mind.count({t:'membership', group:groupName})
+    let count = await mind.count({t:`membership`, group:groupName})
     if(count == 1){
       reply(`<@${appointee}> becomes the first ${groupName}`)
     }else if(count == 2){
@@ -334,7 +334,7 @@ async function systemCommandInvocation(event, command){ //command is a term
     }
     
     if(await canEdit(caster, groupName)){
-      await mind.remove({t:'membership', memberId:appointee, group:groupName})
+      await mind.remove({t:`membership`, memberId:appointee, group:groupName})
     }else{
       tellCantEdit(event.channel, caster, group)
       return
@@ -389,7 +389,7 @@ async function systemCommandInvocation(event, command){ //command is a term
       return
     }
     
-    let b = await mind.findOne({t:'bet', claim, better:caster})
+    let b = await mind.findOne({t:`bet`, claim, better:caster})
     if(b){
       reply(`you can't change your bet`)
       return
@@ -436,7 +436,7 @@ async function systemCommandInvocation(event, command){ //command is a term
     
       let balance = await getBalanceOpenAccountIfNeeded(whosAccount)
       
-      let repm = (whosAccount == caster ? "you have " : `<@${whosAccount}> has `)
+      let repm = (whosAccount == caster ? `you have ` : `<@${whosAccount}> has `)
       reply(`${repm} ${balance}`)
     break
     default:
@@ -444,7 +444,7 @@ async function systemCommandInvocation(event, command){ //command is a term
     }
     
   }else{
-    sendMessage(event.channel, ':question:')
+    sendMessage(event.channel, `:question:`)
   }
 }
 
