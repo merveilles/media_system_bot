@@ -1,0 +1,15 @@
+[Unit]
+Description=system, for multipilot social media
+Documentation=https://github.com/makoConstruct/media_system/
+After=network.target
+
+[Service]
+Type=simple
+User=git
+ExecStart=/usr/bin/node /root/media_system/index.js
+WorkingDirectory=/root/media_system/
+StandardOutput=journal+console
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
