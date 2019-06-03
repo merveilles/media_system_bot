@@ -1,12 +1,8 @@
 "use strict";
 
-require('dotenv').config()
 const nedb = require('nedb')
-const fs = require('fs')
 
-
-
-async function init(){
+;(async ()=>{
 	var mind = new nedb({
 	  filename: __dirname + '/mind.db',
 	  autoload: true
@@ -21,6 +17,4 @@ async function init(){
 		{t:'membership', memberId:principalId, group:'admin', blame:principalId}
 		{t:'global', lastTick:null}
 	]);
-}
-
-init()
+})()

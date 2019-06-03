@@ -183,7 +183,7 @@ async function systemCommandInvocation(event, command){ //command is a term
   let reply = (msg)=> sendMessage(event.channel, `<@${caster}> ${msg}`)
   
   let validateMemberReferenceOrRebuke = (str)=> {
-    if(str == `me` || str = `my`){
+    if(str == `me` || str == `my`){
       return caster
     }else{
       let memberId = readIDField(str)
@@ -249,7 +249,7 @@ async function systemCommandInvocation(event, command){ //command is a term
   async function gatherBets(claim){
     let bets = await mind.find({t:`bet`, claim:claim}).exec()
     let bm = new Map()
-    for(var b : bets){
+    for(var b of bets){
       let mm = bm.get(b.outcome)
       if(!mm){
         mm = []
@@ -258,7 +258,7 @@ async function systemCommandInvocation(event, command){ //command is a term
       mm.push({member:b.better, amount:b.amount})
     }
     let ret = []
-    for(let mm : bm){
+    for(let mm of bm){
       ret.push({outcome:mm[0], bets:mm[1]})
     }
     return ret
@@ -398,36 +398,43 @@ async function systemCommandInvocation(event, command){ //command is a term
     }
     
     sendMessage(event.channel, `registered`)
-  }else if(key == "tell"){
+  }else if(key == `tell`){
     if(!requireCommandHas(2)){ return }
     
     let entityType = command.s[1].initialString()
     switch(entityType){
-    case "wager":
+    case `wager`:
       if(!requireCommandHas(3)){ return }
       let claim = command.s[2].initialString()
       
       let w = await mind.findOne({t:'wager', claim:claim})
-      if(w){
-        let bets = await gatherBets(claim)
-        if(bets.length == 0){
-          reply(`no one has bet on that wager`)
-        }else{
-          let msg = `that wager has\n`
-          for(var b : bets){
-            msg += `  bets for ${b.outcome}, `
-            for(var bb : b.bets){
-              msg += `${bb.member}:${bb.stake}  `
-            }
-            msg += '\n'
-          }
-          reply(msg)
-        }
-      }else{
+      if(!w){
         reply(`there is no wager about that claim`)
+        return
+      }
+      
+      let ret = ``
+      
+      if(w.description){
+        ret += `description: ${w.description}\n`
+      }
+      
+      let bets = await gatherBets(claim)
+      if(bets.length == 0){
+        reply(`no one has bet on this wager`)
+      }else{
+        let msg = `this wager has\n`
+        for(var b of bets){
+          msg += `  bets for ${b.outcome}, `
+          for(var bb of b.bets){
+            msg += `${bb.member}:${bb.stake}  `
+          }
+          msg += '\n'
+        }
+        reply(msg)
       }
     break
-    case "money":
+    case `money`:
       let whosAccount = caster
       if(command.s.length > 2){
         whosAccount = validateMemberReferenceOrRebuke(command.s[2])
@@ -437,7 +444,7 @@ async function systemCommandInvocation(event, command){ //command is a term
       let balance = await getBalanceOpenAccountIfNeeded(whosAccount)
       
       let repm = (whosAccount == caster ? `you have ` : `<@${whosAccount}> has `)
-      reply(`${repm} ${balance}`)
+      reply(`${repm} ${balance} money`)
     break
     default:
       reply(`I don't know about any ${entityType}s`)
